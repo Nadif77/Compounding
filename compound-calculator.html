@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kalkulator Compounding</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --green: #10b981;
+    --green-dark: #059669;
+    --green-light: #ecfdf5;
+    --green-mid: #d1fae5;
+    --green-border: #6ee7b7;
+    --blue: #3b82f6;
+    --bg: #f0fdf4;
+    --white: #ffffff;
+    --gray-50: #f9fafb;
+    --gray-100: #f3f4f6;
+    --gray-200: #e5e7eb;
+    --gray-400: #9ca3af;
+    --gray-500: #6b7280;
+    --gray-700: #374151;
+    --gray-900: #111827;
+    --dark-bg: #111827;
+    --dark-card: #1f2937;
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 24px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.05);
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--gray-900);
+    min-height: 100vh;
+    padding: 28px 16px 48px;
+  }
+
+  .container { max-width: 800px; margin: 0 auto; }
+
+  /* Header */
+  .header { text-align: center; margin-bottom: 32px; }
+  .header-badge {
+    display: inline-block; font-size: 11px; font-weight: 700;
+    color: var(--green-dark); letter-spacing: 0.1em; text-transform: uppercase;
+    background: var(--green-light); border: 1px solid var(--green-border);
+    padding: 5px 14px; border-radius: 50px; margin-bottom: 14px;
+  }
+  .header h1 { font-size: 34px; font-weight: 800; color: var(--gray-900); line-height: 1.15; }
+  .header p { font-size: 14px; color: var(--gray-500); margin-top: 8px; }
+
+  /* Currency Switch */
+  .currency-switch {
+    display: flex; justify-content: center; gap: 10px; margin-bottom: 28px; flex-wrap: wrap;
+  }
+  .cur-btn {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 22px; border-radius: 50px; cursor: pointer;
+    font-size: 14px; font-weight: 600; font-family: 'DM Sans', sans-serif;
+    border: 2px solid var(--gray-200); background: var(--white); color: var(--gray-500);
+    transition: all 0.18s; outline: none;
+  }
+  .cur-btn.active {
+    border-color: var(--green); background: var(--green-light); color: var(--green-dark);
+    box-shadow: 0 0 0 4px rgba(16,185,129,0.12);
+  }
+  .cur-btn .flag { font-size: 20px; }
+
+  /* Card */
+  .card {
+    background: var(--white); border-radius: var(--radius-xl);
+    box-shadow: var(--shadow); padding: 28px; margin-bottom: 18px;
+  }
+
+  /* Input grid */
+  .input-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 24px; }
+  .input-group { display: flex; flex-direction: column; gap: 6px; }
+  .input-group label {
+    font-size: 11px; font-weight: 700; color: var(--gray-500);
+    letter-spacing: 0.06em; text-transform: uppercase;
+  }
+  .input-wrap {
+    display: flex; align-items: center;
+    border: 1.5px solid var(--gray-200); border-radius: var(--radius-md);
+    background: var(--gray-50); overflow: hidden; transition: all 0.15s;
+  }
+  .input-wrap:focus-within {
+    border-color: var(--green); background: var(--white);
+    box-shadow: 0 0 0 3px rgba(16,185,129,0.12);
+  }
+  .input-prefix {
+    padding: 0 14px; font-size: 14px; font-weight: 700;
+    color: var(--gray-400); border-right: 1px solid var(--gray-100);
+    height: 100%; display: flex; align-items: center;
+    background: transparent; transition: color 0.15s; white-space: nowrap;
+    min-height: 48px;
+  }
+  .input-wrap:focus-within .input-prefix { color: var(--green); border-right-color: var(--green-mid); }
+  .money-input {
+    flex: 1; border: none; outline: none; background: transparent;
+    padding: 12px 14px; font-size: 16px; font-weight: 700;
+    color: var(--gray-900); font-variant-numeric: tabular-nums;
+    font-family: 'DM Sans', sans-serif; width: 0;
+  }
+  .input-hint {
+    font-size: 11px; font-weight: 600; color: var(--green);
+    min-height: 16px; transition: all 0.15s;
+  }
+
+  /* Sliders */
+  .slider-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; margin-bottom: 26px; }
+  .slider-group { display: flex; flex-direction: column; gap: 10px; }
+  .slider-header { display: flex; justify-content: space-between; align-items: baseline; }
+  .slider-label {
+    font-size: 11px; font-weight: 700; color: var(--gray-500);
+    letter-spacing: 0.06em; text-transform: uppercase;
+  }
+  .slider-value { font-size: 22px; font-weight: 800; color: var(--gray-900); font-variant-numeric: tabular-nums; }
+  .slider-track { position: relative; height: 6px; border-radius: 3px; background: var(--gray-200); }
+  .slider-fill {
+    position: absolute; left: 0; top: 0; height: 100%;
+    background: linear-gradient(90deg, var(--green), var(--green-dark));
+    border-radius: 3px; pointer-events: none; transition: width 0.08s;
+  }
+  input[type=range] {
+    position: absolute; inset: -6px 0; width: 100%; opacity: 0;
+    cursor: pointer; margin: 0; height: 18px;
+  }
+  .slider-ticks { display: flex; justify-content: space-between; font-size: 10px; color: var(--gray-400); margin-top: 4px; }
+
+  /* Frequency pills */
+  .freq-label {
+    font-size: 11px; font-weight: 700; color: var(--gray-500);
+    letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 10px;
+  }
+  .freq-pills { display: flex; gap: 8px; flex-wrap: wrap; }
+  .freq-pill {
+    padding: 7px 16px; border-radius: 50px; font-size: 13px; font-weight: 600;
+    cursor: pointer; border: 1.5px solid var(--gray-200); background: var(--gray-50);
+    color: var(--gray-500); font-family: 'DM Sans', sans-serif; transition: all 0.15s;
+  }
+  .freq-pill.active {
+    border-color: var(--green); background: var(--green-light); color: var(--green-dark);
+  }
+
+  /* Result cards */
+  .result-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 18px; }
+  .result-card {
+    border-radius: var(--radius-lg); padding: 18px 20px;
+    background: var(--gray-50); border: 1.5px solid var(--gray-100);
+  }
+  .result-card.accent {
+    background: linear-gradient(135deg, #ecfdf5, #d1fae5);
+    border-color: var(--green-border);
+  }
+  .result-label {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.07em;
+    text-transform: uppercase; color: var(--gray-400); margin-bottom: 6px;
+  }
+  .result-card.accent .result-label { color: #065f46; }
+  .result-value {
+    font-size: 20px; font-weight: 800; color: var(--gray-900);
+    font-variant-numeric: tabular-nums; line-height: 1.1;
+  }
+  .result-card.accent .result-value { color: var(--green-dark); }
+  .result-sub { font-size: 11px; color: var(--gray-400); margin-top: 4px; }
+  .result-card.accent .result-sub { color: var(--green); }
+
+  /* Rule 72 */
+  .rule72 {
+    background: linear-gradient(135deg, #111827, #1f2937);
+    border-radius: var(--radius-lg); padding: 18px 24px; margin-bottom: 18px;
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+  }
+  .rule72-label { font-size: 10px; font-weight: 700; color: #6ee7b7; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 4px; }
+  .rule72-desc { font-size: 13px; color: #d1fae5; }
+  .rule72-desc strong { color: #fff; }
+  .rule72-num { font-size: 38px; font-weight: 800; color: var(--green); font-variant-numeric: tabular-nums; }
+  .rule72-unit { font-size: 18px; color: #6ee7b7; }
+
+  /* Tabs */
+  .tab-bar { display: flex; border-bottom: 1px solid var(--gray-100); margin-bottom: 0; }
+  .tab-btn {
+    flex: 1; padding: 16px 8px; border: none; background: transparent;
+    font-size: 13px; font-weight: 600; color: var(--gray-500); cursor: pointer;
+    border-bottom: 2px solid transparent; transition: all 0.15s;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .tab-btn.active { color: var(--green-dark); border-bottom-color: var(--green); }
+  .tab-panel { display: none; padding: 24px; }
+  .tab-panel.active { display: block; }
+
+  /* Chart */
+  .chart-legend { display: flex; gap: 18px; margin-bottom: 14px; font-size: 12px; color: var(--gray-500); }
+  .legend-dot { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+  .chart-wrap { position: relative; width: 100%; height: 280px; }
+
+  /* Table */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th {
+    padding: 10px 12px; text-align: left; font-size: 10px; font-weight: 700;
+    color: var(--gray-500); letter-spacing: 0.06em; text-transform: uppercase;
+    background: var(--gray-50); border-bottom: 1px solid var(--gray-100);
+  }
+  td { padding: 10px 12px; border-bottom: 1px solid var(--gray-100); font-variant-numeric: tabular-nums; }
+  tr:last-child td { border-bottom: none; }
+  tr:nth-child(even) td { background: #fafafa; }
+  .bar-cell { display: flex; align-items: center; gap: 8px; }
+  .mini-bar { flex: 1; height: 5px; background: var(--gray-100); border-radius: 3px; overflow: hidden; min-width: 60px; }
+  .mini-fill { height: 100%; background: var(--green); border-radius: 3px; }
+  .mini-pct { font-size: 11px; color: var(--gray-400); min-width: 32px; }
+
+  /* Compare table */
+  .compare-info { font-size: 13px; color: var(--gray-500); margin-bottom: 16px; line-height: 1.6; }
+  .compare-info strong { color: var(--gray-900); }
+  tr.active-row td { background: var(--green-light) !important; }
+  .active-badge {
+    display: inline-block; font-size: 10px; background: var(--green-mid);
+    color: #065f46; padding: 2px 7px; border-radius: 50px; margin-left: 6px; font-weight: 700;
+  }
+
+  /* Overflow */
+  .table-scroll { overflow-x: auto; }
+
+  /* Footer */
+  .footer { text-align: center; margin-top: 24px; font-size: 12px; color: var(--gray-400); font-style: italic; }
+
+  @media (max-width: 560px) {
+    .input-grid, .slider-grid, .result-grid { grid-template-columns: 1fr; }
+    .header h1 { font-size: 26px; }
+    .rule72 { flex-direction: column; align-items: flex-start; }
+    .tab-btn { font-size: 11px; padding: 12px 4px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-badge">✦ Keajaiban Dunia ke-8</div>
+    <h1>Kalkulator Compounding</h1>
+    <p>Hitung pertumbuhan investasimu dengan efek bunga berbunga</p>
+  </div>
+
+  <!-- Currency Switch -->
+  <div class="currency-switch">
+    <button class="cur-btn active" data-cur="IDR" onclick="switchCurrency('IDR')">
+      <span class="flag">🇮🇩</span> Rp &nbsp;Rupiah
+    </button>
+    <button class="cur-btn" data-cur="USD" onclick="switchCurrency('USD')">
+      <span class="flag">🇺🇸</span> $ &nbsp;US Dollar
+    </button>
+  </div>
+
+  <!-- Input Card -->
+  <div class="card">
+    <div class="input-grid">
+      <div class="input-group">
+        <label>Modal Awal</label>
+        <div class="input-wrap">
+          <span class="input-prefix" id="prefix-principal">Rp</span>
+          <input class="money-input" id="inp-principal" type="text" inputmode="numeric" value="10.000.000" oninput="onMoneyInput('principal')">
+        </div>
+        <div class="input-hint" id="hint-principal">≈ 10 Juta</div>
+      </div>
+      <div class="input-group">
+        <label>Tambahan / Bulan</label>
+        <div class="input-wrap">
+          <span class="input-prefix" id="prefix-monthly">Rp</span>
+          <input class="money-input" id="inp-monthly" type="text" inputmode="numeric" value="1.000.000" oninput="onMoneyInput('monthly')">
+        </div>
+        <div class="input-hint" id="hint-monthly">≈ 1 Juta / bulan</div>
+      </div>
+    </div>
+
+    <div class="slider-grid">
+      <div class="slider-group">
+        <div class="slider-header">
+          <span class="slider-label">Suku Bunga / Tahun</span>
+          <span class="slider-value" id="val-rate">12%</span>
+        </div>
+        <div class="slider-track">
+          <div class="slider-fill" id="fill-rate" style="width:36.67%"></div>
+          <input type="range" id="sl-rate" min="1" max="30" step="0.5" value="12" oninput="updateSlider('rate')">
+        </div>
+        <div class="slider-ticks"><span>1%</span><span>30%</span></div>
+      </div>
+      <div class="slider-group">
+        <div class="slider-header">
+          <span class="slider-label">Periode Investasi</span>
+          <span class="slider-value" id="val-years">20 thn</span>
+        </div>
+        <div class="slider-track">
+          <div class="slider-fill" id="fill-years" style="width:38%"></div>
+          <input type="range" id="sl-years" min="1" max="50" step="1" value="20" oninput="updateSlider('years')">
+        </div>
+        <div class="slider-ticks"><span>1 thn</span><span>50 thn</span></div>
+      </div>
+    </div>
+
+    <div class="freq-label">Frekuensi Compounding</div>
+    <div class="freq-pills">
+      <button class="freq-pill" data-freq="365" onclick="setFreq(365)">Harian</button>
+      <button class="freq-pill active" data-freq="12" onclick="setFreq(12)">Bulanan</button>
+      <button class="freq-pill" data-freq="4" onclick="setFreq(4)">Kuartalan</button>
+      <button class="freq-pill" data-freq="2" onclick="setFreq(2)">Semi-tahunan</button>
+      <button class="freq-pill" data-freq="1" onclick="setFreq(1)">Tahunan</button>
+    </div>
+  </div>
+
+  <!-- Result cards -->
+  <div class="result-grid">
+    <div class="result-card accent">
+      <div class="result-label">Nilai Akhir</div>
+      <div class="result-value" id="res-final">—</div>
+      <div class="result-sub" id="res-multi">—</div>
+    </div>
+    <div class="result-card">
+      <div class="result-label">Total Disetor</div>
+      <div class="result-value" id="res-invested">—</div>
+      <div class="result-sub" id="res-invested-sub">—</div>
+    </div>
+    <div class="result-card">
+      <div class="result-label">Total Bunga</div>
+      <div class="result-value" id="res-interest" style="color:var(--blue)">—</div>
+      <div class="result-sub" id="res-interest-sub">—</div>
+    </div>
+  </div>
+
+  <!-- Rule 72 -->
+  <div class="rule72">
+    <div>
+      <div class="rule72-label">Rule of 72</div>
+      <div class="rule72-desc" id="r72-desc">—</div>
+    </div>
+    <div>
+      <span class="rule72-num" id="r72-num">—</span>
+      <span class="rule72-unit"> tahun</span>
+    </div>
+  </div>
+
+  <!-- Tabs card -->
+  <div class="card" style="padding:0; overflow:hidden;">
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="switchTab('chart', this)">Grafik</button>
+      <button class="tab-btn" onclick="switchTab('table', this)">Tabel Tahunan</button>
+      <button class="tab-btn" onclick="switchTab('compare', this)">Bandingkan Bunga</button>
+    </div>
+
+    <!-- Chart Panel -->
+    <div class="tab-panel active" id="panel-chart">
+      <div class="chart-legend">
+        <span><span class="legend-dot" style="background:#10b981"></span> &nbsp;Nilai Akhir</span>
+        <span><span class="legend-dot" style="background:#3b82f6"></span> &nbsp;Total Disetor</span>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="growthChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Table Panel -->
+    <div class="tab-panel" id="panel-table">
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Tahun</th>
+              <th>Total Disetor</th>
+              <th>Bunga Didapat</th>
+              <th>Nilai Akhir</th>
+              <th>% Bunga</th>
+            </tr>
+          </thead>
+          <tbody id="tbl-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Compare Panel -->
+    <div class="tab-panel" id="panel-compare">
+      <div class="compare-info" id="compare-info"></div>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Bunga / Tahun</th>
+              <th>Total Disetor</th>
+              <th>Bunga Didapat</th>
+              <th>Nilai Akhir</th>
+              <th>Multiplier</th>
+            </tr>
+          </thead>
+          <tbody id="compare-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">"Compound interest is the eighth wonder of the world." — Albert Einstein</div>
+</div>
+
+<script>
+// ─── State ────────────────────────────────────────────────────────────────────
+const state = {
+  currency: 'IDR',
+  principal: 10000000,
+  monthly: 1000000,
+  rate: 12,
+  years: 20,
+  freq: 12,
+};
+
+const CURRENCIES = {
+  IDR: { symbol: 'Rp', locale: 'id-ID', decimals: 0, default: [10000000, 1000000] },
+  USD: { symbol: '$',  locale: 'en-US', decimals: 0, default: [1000,     100     ] },
+};
+
+let chartInstance = null;
+
+// ─── Format helpers ───────────────────────────────────────────────────────────
+function parseRaw(str) {
+  return parseInt(String(str).replace(/[^0-9]/g, ''), 10) || 0;
+}
+
+function fmtInput(num, cur) {
+  if (!num) return '';
+  return new Intl.NumberFormat(CURRENCIES[cur].locale, { maximumFractionDigits: 0 }).format(num);
+}
+
+function fmtMoney(val, cur) {
+  val = Math.round(val);
+  const sym = CURRENCIES[cur].symbol;
+  if (cur === 'IDR') {
+    if (val >= 1e12) return `${sym} ${(val/1e12).toFixed(2)} T`;
+    if (val >= 1e9)  return `${sym} ${(val/1e9).toFixed(2)} M`;
+    if (val >= 1e6)  return `${sym} ${(val/1e6).toFixed(1)} jt`;
+    return `${sym} ${new Intl.NumberFormat('id-ID').format(val)}`;
+  }
+  if (val >= 1e6) return `${sym}${(val/1e6).toFixed(2)}M`;
+  if (val >= 1e3) return `${sym}${(val/1e3).toFixed(1)}K`;
+  return `${sym}${new Intl.NumberFormat('en-US').format(val)}`;
+}
+
+function fmtAxis(val, cur) {
+  if (cur === 'IDR') {
+    if (val >= 1e12) return `${(val/1e12).toFixed(1)}T`;
+    if (val >= 1e9)  return `${(val/1e9).toFixed(1)}M`;
+    if (val >= 1e6)  return `${(val/1e6).toFixed(0)}jt`;
+    if (val >= 1e3)  return `${(val/1e3).toFixed(0)}rb`;
+    return val;
+  }
+  if (val >= 1e6) return `$${(val/1e6).toFixed(1)}M`;
+  if (val >= 1e3) return `$${(val/1e3).toFixed(0)}K`;
+  return `$${val}`;
+}
+
+function idrHint(num, suffix='') {
+  if (!num) return '';
+  if (num >= 1e12) return `≈ ${(num/1e12).toFixed(2)} Triliun${suffix}`;
+  if (num >= 1e9)  return `≈ ${(num/1e9).toFixed(2)} Miliar${suffix}`;
+  if (num >= 1e6)  return `≈ ${(num/1e6).toFixed(1)} Juta${suffix}`;
+  if (num >= 1e3)  return `≈ ${(num/1e3).toFixed(0)} Ribu${suffix}`;
+  return '';
+}
+
+// ─── Compound calc ────────────────────────────────────────────────────────────
+function calcCompound(principal, monthly, rateAnnual, years, freq) {
+  const r = rateAnnual / 100 / freq;
+  const mFreq = (monthly * 12) / freq;
+  const data = [{ year: 0, balance: principal, invested: principal, interest: 0 }];
+  let balance = principal, invested = principal;
+  for (let y = 1; y <= years; y++) {
+    for (let p = 0; p < freq; p++) balance = balance * (1 + r) + mFreq;
+    invested += monthly * 12;
+    data.push({ year: y, balance: Math.round(balance), invested: Math.round(invested), interest: Math.round(balance - invested) });
+  }
+  return data;
+}
+
+// ─── Input handlers ───────────────────────────────────────────────────────────
+function onMoneyInput(field) {
+  const el = document.getElementById(`inp-${field}`);
+  const raw = parseRaw(el.value);
+  state[field] = raw;
+
+  // Reformat with separators while preserving cursor roughly
+  const formatted = fmtInput(raw, state.currency);
+  el.value = formatted;
+
+  // Update hint
+  if (state.currency === 'IDR') {
+    const hint = field === 'monthly' ? idrHint(raw, ' / bulan') : idrHint(raw);
+    document.getElementById(`hint-${field}`).textContent = hint;
+  } else {
+    document.getElementById(`hint-${field}`).textContent = '';
+  }
+
+  render();
+}
+
+function updateSlider(name) {
+  const el = document.getElementById(`sl-${name}`);
+  const val = parseFloat(el.value);
+  state[name] = val;
+  const min = parseFloat(el.min), max = parseFloat(el.max);
+  const pct = ((val - min) / (max - min)) * 100;
+  document.getElementById(`fill-${name}`).style.width = pct + '%';
+  document.getElementById(`val-${name}`).textContent = name === 'rate' ? `${val}%` : `${val} thn`;
+  render();
+}
+
+function setFreq(f) {
+  state.freq = f;
+  document.querySelectorAll('.freq-pill').forEach(b => b.classList.toggle('active', +b.dataset.freq === f));
+  render();
+}
+
+function switchCurrency(cur) {
+  state.currency = cur;
+  document.querySelectorAll('.cur-btn').forEach(b => b.classList.toggle('active', b.dataset.cur === cur));
+  const [defP, defM] = CURRENCIES[cur].default;
+  state.principal = defP; state.monthly = defM;
+  const sym = CURRENCIES[cur].symbol;
+  document.getElementById('prefix-principal').textContent = sym;
+  document.getElementById('prefix-monthly').textContent = sym;
+  document.getElementById('inp-principal').value = fmtInput(defP, cur);
+  document.getElementById('inp-monthly').value = fmtInput(defM, cur);
+  if (cur === 'IDR') {
+    document.getElementById('hint-principal').textContent = idrHint(defP);
+    document.getElementById('hint-monthly').textContent = idrHint(defM, ' / bulan');
+  } else {
+    document.getElementById('hint-principal').textContent = '';
+    document.getElementById('hint-monthly').textContent = '';
+  }
+  render();
+}
+
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(`panel-${name}`).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ─── Render ───────────────────────────────────────────────────────────────────
+function render() {
+  const { currency, principal, monthly, rate, years, freq } = state;
+  const data = calcCompound(principal, monthly, rate, years, freq);
+  const final = data[data.length - 1];
+  const multiplier = final.invested > 0 ? (final.balance / final.invested).toFixed(2) : '0';
+  const interestPct = final.balance > 0 ? Math.round((final.interest / final.balance) * 100) : 0;
+
+  // Results
+  document.getElementById('res-final').textContent = fmtMoney(final.balance, currency);
+  document.getElementById('res-multi').textContent = `${multiplier}x lipat dari modal`;
+  document.getElementById('res-invested').textContent = fmtMoney(final.invested, currency);
+  document.getElementById('res-invested-sub').textContent = `Modal awal + rutin ${years} tahun`;
+  document.getElementById('res-interest').textContent = fmtMoney(final.interest, currency);
+  document.getElementById('res-interest-sub').textContent = `${interestPct}% dari nilai akhir`;
+
+  // Rule 72
+  const r72 = (72 / rate).toFixed(1);
+  document.getElementById('r72-num').textContent = r72;
+  document.getElementById('r72-desc').innerHTML = `Pada bunga <strong>${rate}%</strong> per tahun, uangmu berlipat ganda tiap`;
+
+  // Chart
+  const labels = data.map(d => d.year === 0 ? 'Awal' : `Th ${d.year}`);
+  const balances = data.map(d => d.balance);
+  const invested = data.map(d => d.invested);
+  const skip = Math.max(1, Math.floor(years / 10));
+
+  if (chartInstance) chartInstance.destroy();
+  chartInstance = new Chart(document.getElementById('growthChart'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Nilai Akhir', data: balances,
+          borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.1)',
+          fill: true, tension: 0.4, borderWidth: 2.5,
+          pointRadius: years > 25 ? 0 : 3, pointBackgroundColor: '#10b981',
+        },
+        {
+          label: 'Total Disetor', data: invested,
+          borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.07)',
+          fill: true, tension: 0.4, borderWidth: 2, borderDash: [5, 4],
+          pointRadius: 0,
+        },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#fff', titleColor: '#6b7280', bodyColor: '#111827',
+          borderColor: '#e5e7eb', borderWidth: 1,
+          padding: 12, cornerRadius: 12,
+          callbacks: {
+            title: items => items[0].label,
+            label: ctx => ` ${ctx.dataset.label}: ${fmtMoney(ctx.raw, currency)}`,
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: { color: '#9ca3af', font: { size: 11 }, maxTicksLimit: 10 },
+          grid: { color: 'rgba(0,0,0,0.04)' },
+        },
+        y: {
+          ticks: { color: '#9ca3af', font: { size: 11 }, callback: v => fmtAxis(v, currency) },
+          grid: { color: 'rgba(0,0,0,0.04)' },
+        }
+      }
+    }
+  });
+
+  // Table
+  const tbody = document.getElementById('tbl-body');
+  tbody.innerHTML = data.filter(d => d.year > 0).map((d, i) => {
+    const pct = d.balance > 0 ? Math.round((d.interest / d.balance) * 100) : 0;
+    return `<tr>
+      <td style="font-weight:700">${d.year}</td>
+      <td style="color:var(--blue)">${fmtMoney(d.invested, currency)}</td>
+      <td style="color:var(--green)">${fmtMoney(d.interest, currency)}</td>
+      <td style="font-weight:700">${fmtMoney(d.balance, currency)}</td>
+      <td>
+        <div class="bar-cell">
+          <div class="mini-bar"><div class="mini-fill" style="width:${pct}%"></div></div>
+          <span class="mini-pct">${pct}%</span>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  // Compare
+  document.getElementById('compare-info').innerHTML =
+    `Perbandingan selama <strong>${years} tahun</strong> dengan modal awal <strong>${fmtMoney(principal, currency)}</strong> + tambahan <strong>${fmtMoney(monthly, currency)}/bulan</strong>`;
+
+  const rates = [4, 6, 8, 10, 12, 15, 20];
+  document.getElementById('compare-body').innerHTML = rates.map(r => {
+    const d = calcCompound(principal, monthly, r, years, freq);
+    const f = d[d.length - 1];
+    const isActive = r === rate;
+    return `<tr class="${isActive ? 'active-row' : ''}">
+      <td style="font-weight:700;color:${isActive ? 'var(--green-dark)' : 'var(--gray-900)'}">
+        ${r}%${isActive ? '<span class="active-badge">kamu</span>' : ''}
+      </td>
+      <td style="color:var(--blue)">${fmtMoney(f.invested, currency)}</td>
+      <td style="color:var(--green)">${fmtMoney(f.interest, currency)}</td>
+      <td style="font-weight:700">${fmtMoney(f.balance, currency)}</td>
+      <td style="font-weight:700;color:${isActive ? 'var(--green-dark)' : 'var(--gray-500)'}">
+        ${(f.balance / f.invested).toFixed(2)}x
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+render();
+</script>
+</body>
+</html>
